@@ -79,6 +79,86 @@ void dispatchTouchEventCB(OH_NativeXComponent* component, void* window) {
     sendMsgToWorker(cocos2d::MessageType::WM_XCOMPONENT_TOUCH_EVENT, reinterpret_cast<void*>(ev), window);
 }
 
+int ohKeyCodeToCocosKeyCode(OH_NativeXComponent_KeyCode ohKeyCode) {
+    const int keyZeroInCocos = 48;
+    const int keyF1InCocos = 112;
+    const int keyAInCocos = 65;
+    std::unordered_map<OH_NativeXComponent_KeyCode, int> keyCodeMap = {
+        {KEY_ESCAPE, 27},
+        {KEY_GRAVE, 192},
+        {KEY_MINUS, 189},
+        {KEY_EQUALS, 187},
+        {KEY_DEL, 8},
+        {KEY_TAB, 9},
+        {KEY_LEFT_BRACKET, 219},
+        {KEY_RIGHT_BRACKET, 221},
+        {KEY_BACKSLASH, 220},
+        {KEY_CAPS_LOCK, 20},
+        {KEY_SEMICOLON, 186},
+        {KEY_APOSTROPHE, 222},
+        {KEY_ENTER, 13},
+        {KEY_SHIFT_LEFT, 16},
+        {KEY_COMMA, 188},
+        {KEY_PERIOD, 190},
+        {KEY_SLASH, 191},
+        {KEY_SHIFT_RIGHT, 16 + 20000}, // For indicating Left/Right control, needs to be converted in JS.
+        {KEY_CTRL_LEFT, 17},
+        {KEY_ALT_LEFT, 18},
+        {KEY_SPACE, 32},
+        {KEY_ALT_RIGHT, 18 + 20000}, // For indicating Left/Right control, needs to be converted in JS.
+        {KEY_CTRL_RIGHT, 17 + 20000}, // For indicating Left/Right control, needs to be converted in JS.
+        {KEY_DPAD_LEFT, 37},
+        {KEY_DPAD_RIGHT, 39},
+        {KEY_DPAD_DOWN, 40},
+        {KEY_DPAD_UP, 38},
+        // {KEY_SYSRQ, PRINT_SCREEN}, // 系统功能键位 不需要适配
+        {KEY_INSERT, 45},
+        // {KEY_FORWARD_DEL, DELETE_KEY} // 系统功能键位 不需要适配
+    };
+    if (keyCodeMap.find(ohKeyCode) != keyCodeMap.end()) {
+        return keyCodeMap[ohKeyCode];
+    }
+    if (ohKeyCode >= KEY_0 && ohKeyCode <= KEY_9) {
+        return keyZeroInCocos + ohKeyCode - KEY_0;
+    }
+    if (ohKeyCode >= KEY_A && ohKeyCode <= KEY_Z) {
+        return keyAInCocos + ohKeyCode - KEY_A;
+    }
+    if (ohKeyCode >= KEY_F1 && ohKeyCode <= KEY_F12) {
+        return keyF1InCocos + ohKeyCode - KEY_F1;
+    }
+    return ohKeyCode;
+}
+void onKeyEventCB(OH_NativeXComponent* component, void* window) {
+    LOGD("OpenHarmonyPlatform::DispatchKeyEventCB_START");
+    OH_NativeXComponent_KeyEvent* keyEvent;
+    if (OH_NativeXComponent_GetKeyEvent(component, &keyEvent) >= 0) {
+        const int keyCodeUnknownInOH = -1;
+        const int keyActionUnknownInOH = -1;
+        OH_NativeXComponent_KeyAction action;
+        OH_NativeXComponent_GetKeyEventAction(keyEvent, &action);
+        OH_NativeXComponent_KeyCode code;
+        OH_NativeXComponent_GetKeyEventCode(keyEvent, &code);
+        if (code == keyCodeUnknownInOH || action == keyActionUnknownInOH) {
+            // unknown code and action don't callback
+            return;
+        }
+        cocos2d::KeyboardEvent* ev = new cocos2d::KeyboardEvent;
+        if (action == 0) {
+            ev->action = cocos2d::KeyboardEvent::Action::PRESS;
+        } else if (action == 1) {
+            ev->action = cocos2d::KeyboardEvent::Action::RELEASE;
+        } else {
+            ev->action = cocos2d::KeyboardEvent::Action::REPEAT;
+        }
+        ev->key = ohKeyCodeToCocosKeyCode(code);
+        sendMsgToWorker(cocos2d::MessageType::WM_XCOMPONENT_KEY_EVENT, reinterpret_cast<void*>(ev), window);
+        LOGD("OpenHarmonyPlatform::getKeyEventSuccess");
+    } else {
+        LOGE("OpenHarmonyPlatform::getKeyEventError");
+    }
+}
+
 void onSurfaceChangedCB(OH_NativeXComponent* component, void* window) {
     sendMsgToWorker(cocos2d::MessageType::WM_XCOMPONENT_SURFACE_CHANGED, component, window);
 }
@@ -133,6 +213,8 @@ int32_t OpenHarmonyPlatform::run(int argc, const char** argv) {
 void OpenHarmonyPlatform::setNativeXComponent(OH_NativeXComponent* component) {
     _component = component;
     OH_NativeXComponent_RegisterCallback(_component, &_callback);
+    // register keyEvent
+    OH_NativeXComponent_RegisterKeyEventCallback(_component, onKeyEventCB);
 }
 
 void OpenHarmonyPlatform::enqueue(const WorkerMessageData& msg) {
@@ -168,6 +250,11 @@ void OpenHarmonyPlatform::onMessageCallback(const uv_async_t* /* req */) {
             if (msgData.type == MessageType::WM_XCOMPONENT_TOUCH_EVENT) {
                 TouchEvent* ev = reinterpret_cast<TouchEvent*>(msgData.data);
                 EventDispatcher::dispatchTouchEvent(*ev);
+                delete ev;
+                ev = nullptr;
+            } else if (msgData.type == MessageType::WM_XCOMPONENT_KEY_EVENT) {
+                KeyboardEvent* ev = reinterpret_cast<KeyboardEvent*>(msgData.data);
+                EventDispatcher::dispatchKeyboardEvent(*ev);
                 delete ev;
                 ev = nullptr;
             } else if (msgData.type == MessageType::WM_XCOMPONENT_SURFACE_CREATED) {
