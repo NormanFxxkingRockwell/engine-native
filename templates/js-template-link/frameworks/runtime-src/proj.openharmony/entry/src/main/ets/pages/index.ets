@@ -323,7 +323,7 @@ struct Index {
     } as FlexOptions) {
       XComponent({ id: 'xcomponentId', type: 'surface', libraryname: 'cocos' })
         .focusable(true)
-        .focusOnTouch(true)
+        .defaultFocus(true)
         .onLoad((context) => {
           // Set the cache directory in the ts layer.
           this.workPort.postMessage("onXCLoad", "XComponent");
