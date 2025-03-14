@@ -26,6 +26,7 @@
 #include "platform/CCPlatformDefine.h"
 
 #include <ace/xcomponent/native_interface_xcomponent.h>
+#include <ace/xcomponent/native_xcomponent_key_event.h>
 #include <napi/native_api.h>
 
 #include "cocos2d.h"
@@ -129,6 +130,7 @@ int ohKeyCodeToCocosKeyCode(OH_NativeXComponent_KeyCode ohKeyCode) {
     }
     return ohKeyCode;
 }
+
 void onKeyEventCB(OH_NativeXComponent* component, void* window) {
     LOGD("OpenHarmonyPlatform::DispatchKeyEventCB_START");
     OH_NativeXComponent_KeyEvent* keyEvent;
@@ -144,9 +146,9 @@ void onKeyEventCB(OH_NativeXComponent* component, void* window) {
             return;
         }
         cocos2d::KeyboardEvent* ev = new cocos2d::KeyboardEvent;
-        if (action == 0) {
+        if (action == OH_NATIVEXCOMPONENT_KEY_ACTION_DOWN) {
             ev->action = cocos2d::KeyboardEvent::Action::PRESS;
-        } else if (action == 1) {
+        } else if (action == OH_NATIVEXCOMPONENT_KEY_ACTION_UP) {
             ev->action = cocos2d::KeyboardEvent::Action::RELEASE;
         } else {
             ev->action = cocos2d::KeyboardEvent::Action::REPEAT;
@@ -157,6 +159,51 @@ void onKeyEventCB(OH_NativeXComponent* component, void* window) {
     } else {
         LOGE("OpenHarmonyPlatform::getKeyEventError");
     }
+}
+
+void onMouseEventCB(OH_NativeXComponent* component, void* window) {
+    LOGD("OpenHarmonyPlatform::DispatchMouseEventCB_START");
+    OH_NativeXComponent_MouseEvent mouseEvent;
+    int32_t ret = OH_NativeXComponent_GetMouseEvent(component, window, &mouseEvent);
+    if (ret == OH_NATIVEXCOMPONENT_RESULT_SUCCESS) {
+        cocos2d::MouseEvent* ev = new cocos2d::MouseEvent;
+        ev->x = mouseEvent.x;
+        ev->y = mouseEvent.y;
+        switch (mouseEvent.button) {
+            case OH_NATIVEXCOMPONENT_LEFT_BUTTON:
+                ev->button = 0;
+                break;
+            case OH_NATIVEXCOMPONENT_MIDDLE_BUTTON:
+                ev->button = 1;
+                break;
+            case OH_NATIVEXCOMPONENT_RIGHT_BUTTON:
+                ev->button = 2;
+                break;
+            default:
+                ev->button = -1;
+        }
+        switch (mouseEvent.action) {
+            case OH_NATIVEXCOMPONENT_MOUSE_PRESS:
+                ev->type = cocos2d::MouseEvent::Type::DOWN;
+                break;
+            case OH_NATIVEXCOMPONENT_MOUSE_RELEASE:
+                ev->type = cocos2d::MouseEvent::Type::UP;
+                break;
+            case OH_NATIVEXCOMPONENT_MOUSE_MOVE:
+                ev->type = cocos2d::MouseEvent::Type::MOVE;
+                break;
+            default:
+                ev->type = cocos2d::MouseEvent::Type::UNKNOWN;
+        }
+        sendMsgToWorker(cocos2d::MessageType::WM_XCOMPONENT_MOUSE_EVENT, reinterpret_cast<void*>(ev), window);
+        LOGD("OpenHarmonyPlatform::getMouseEventSuccess");
+    } else {
+        LOGE("OpenHarmonyPlatform::getMouseEventError");
+    }
+}
+
+void onMouseHoverEventCB(OH_NativeXComponent* component, bool isHover) {
+    LOGD("OpenHarmonyPlatform::DispatchMouseHoverEventCB_START");
 }
 
 void onSurfaceChangedCB(OH_NativeXComponent* component, void* window) {
@@ -215,6 +262,10 @@ void OpenHarmonyPlatform::setNativeXComponent(OH_NativeXComponent* component) {
     OH_NativeXComponent_RegisterCallback(_component, &_callback);
     // register keyEvent
     OH_NativeXComponent_RegisterKeyEventCallback(_component, onKeyEventCB);
+    // register mouseEvent
+    _mouseEventCallback.DispatchMouseEvent = onMouseEventCB;
+    _mouseEventCallback.DispatchHoverEvent = onMouseHoverEventCB;
+    OH_NativeXComponent_RegisterMouseEventCallback(_component, &_mouseEventCallback);
 }
 
 void OpenHarmonyPlatform::enqueue(const WorkerMessageData& msg) {
@@ -257,6 +308,13 @@ void OpenHarmonyPlatform::onMessageCallback(const uv_async_t* /* req */) {
                 EventDispatcher::dispatchKeyboardEvent(*ev);
                 delete ev;
                 ev = nullptr;
+            } else if (msgData.type == MessageType::WM_XCOMPONENT_MOUSE_EVENT) {
+                // MouseEvent* ev = reinterpret_cast<MouseEvent*>(msgData.data);
+                // LOGD("duanaoqiLog:got msgData");
+                // LOGD("duanaoqiLog:MouseEvent - Type: %{public}d, X: %{public}d, Y: %{public}d, Button: %{public}d", ev->type, ev->x, ev->y, ev->button);
+                // EventDispatcher::dispatchMouseEvent(*ev);
+                // delete ev;
+                // ev = nullptr;
             } else if (msgData.type == MessageType::WM_XCOMPONENT_SURFACE_CREATED) {
                 OH_NativeXComponent* nativexcomponet = reinterpret_cast<OH_NativeXComponent*>(msgData.data);
                 CC_ASSERT(nativexcomponet != nullptr);

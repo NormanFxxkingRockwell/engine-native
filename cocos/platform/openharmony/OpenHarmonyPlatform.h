@@ -83,6 +83,7 @@ public:
     int64_t _prefererredNanosecondsPerFrame{NANOSECONDS_60FPS};
     OH_NativeXComponent* _component{nullptr};
     OH_NativeXComponent_Callback _callback;
+    OH_NativeXComponent_MouseEvent_Callback _mouseEventCallback;
     uv_timer_t _timerHandle;
     uv_loop_t* _workerLoop{nullptr};
     uv_async_t _messageSignal{};

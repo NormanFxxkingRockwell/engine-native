@@ -1,26 +1,26 @@
 /****************************************************************************
  Copyright (c) 2018 Xiamen Yaji Software Co., Ltd.
- 
- http://www.cocos2d-x.org
- 
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.
- ****************************************************************************/
+
+http://www.cocos2d-x.org
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+****************************************************************************/
 
 #include "EventDispatcher.h"
 
@@ -167,59 +167,81 @@ void EventDispatcher::dispatchTouchEvent(const struct TouchEvent& touchEvent)
 
 void EventDispatcher::dispatchMouseEvent(const struct MouseEvent& mouseEvent)
 {
-    if (!se::ScriptEngine::getInstance()->isValid())
+    LOGD("duanaoqi::EventDispatcher::dispatchMouseEvent::START");
+    if (!se::ScriptEngine::getInstance()->isValid()) {
+        LOGD("duanaoqi::OpenHarmonyPlatform::WTF IM RETURN");
         return;
+    }
 
+    LOGD("duanaoqi::OpenHarmonyPlatform::GOGO 1");
     se::AutoHandleScope scope;
     assert(_inited);
 
+
+    LOGD("duanaoqi::OpenHarmonyPlatform::GOGO 2");
     if (_jsMouseEventObj == nullptr)
     {
+        LOGD("duanaoqi::OpenHarmonyPlatform::_jsMouseEventObj");
         _jsMouseEventObj = se::Object::createPlainObject();
         _jsMouseEventObj->root();
     }
 
+
+    LOGD("duanaoqi::OpenHarmonyPlatform::GOGO 3");
     const auto& xVal = se::Value(mouseEvent.x);
     const auto& yVal = se::Value(mouseEvent.y);
     const MouseEvent::Type type = mouseEvent.type;
 
     if (type == MouseEvent::Type::WHEEL)
     {
+        LOGD("duanaoqi::OpenHarmonyPlatform::type == MouseEvent::Type::WHEEL IF");
         _jsMouseEventObj->setProperty("wheelDeltaX", xVal);
         _jsMouseEventObj->setProperty("wheelDeltaY", yVal);
     }
     else
     {
+        LOGD("duanaoqi::OpenHarmonyPlatform::type == MouseEvent::Type::WHEEL else");
         if (type == MouseEvent::Type::DOWN || type == MouseEvent::Type::UP)
         {
+            LOGD("duanaoqi::OpenHarmonyPlatform::type == MouseEvent::Type::DOWN || type == MouseEvent::Type::UP");
             _jsMouseEventObj->setProperty("button", se::Value(mouseEvent.button));
         }
         _jsMouseEventObj->setProperty("x", xVal);
         _jsMouseEventObj->setProperty("y", yVal);
     }
 
+    LOGD("duanaoqi::OpenHarmonyPlatform::GOGO 4");
+
     const char* eventName = nullptr;
     switch (type) {
         case MouseEvent::Type::DOWN:
+            LOGD("duanaoqi::OpenHarmonyPlatform::case MouseEvent::Type::DOWN:");
             eventName = "onMouseDown";
             break;
         case MouseEvent::Type::MOVE:
+            LOGD("duanaoqi::OpenHarmonyPlatform::case MouseEvent::Type::MOVE:");
             eventName = "onMouseMove";
             break;
         case MouseEvent::Type::UP:
+            LOGD("duanaoqi::OpenHarmonyPlatform::case MouseEvent::Type::UP:");
             eventName = "onMouseUp";
             break;
         case MouseEvent::Type::WHEEL:
+            LOGD("duanaoqi::OpenHarmonyPlatform::case MouseEvent::Type::WHEEL:");
             eventName = "onMouseWheel";
             break;
         default:
+            LOGD("duanaoqi::OpenHarmonyPlatform::case MouseEvent::Type::default:");
             assert(false);
             break;
     }
 
+    LOGD("duanaoqi::OpenHarmonyPlatform::GOGO 5");
+
     se::Value callbackVal;
     if (__jsbObj->getProperty(eventName, &callbackVal) && !callbackVal.isNullOrUndefined())
     {
+        LOGD("duanaoqi::OpenHarmonyPlatform::if (__jsbObj->getProperty(eventName, &callbackVal) && !callbackVal.isNullOrUndefined())");
         se::ValueArray args;
         args.push_back(se::Value(_jsMouseEventObj));
         callbackVal.toObject()->call(args, nullptr);
