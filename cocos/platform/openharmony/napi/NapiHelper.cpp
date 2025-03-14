@@ -161,6 +161,8 @@ napi_value NapiHelper::getContext(napi_env env, napi_callback_info info) {
                 DECLARE_NAPI_FUNCTION("onCreate", NapiHelper::napiOnCreate),
                 DECLARE_NAPI_FUNCTION("onShow", NapiHelper::napiOnShow),
                 DECLARE_NAPI_FUNCTION("onHide", NapiHelper::napiOnHide),
+                DECLARE_NAPI_FUNCTION("onInvisible", NapiHelper::napiOnInvisible),
+                DECLARE_NAPI_FUNCTION("onVisible", NapiHelper::napiOnVisible),
                 DECLARE_NAPI_FUNCTION("onDestroy", NapiHelper::napiOnDestroy),
                 DECLARE_NAPI_FUNCTION("onBackPress", NapiHelper::napiOnBackPress),
             };
@@ -289,6 +291,30 @@ napi_value NapiHelper::napiOnHide(napi_env env, napi_callback_info info) {
         app->onPause();
     }
     LOGD("NapiHelper::napiOnHide");
+    return nullptr;
+}
+
+napi_value NapiHelper::napiOnInvisible(napi_env env, napi_callback_info info) {
+    cocos2d::WorkerMessageData data{cocos2d::MessageType::WM_APP_INVISIBLE, nullptr, nullptr};
+    OpenHarmonyPlatform::getInstance()->enqueue(data);
+
+    Application* app = OpenHarmonyPlatform::getInstance()->g_app;
+    if (app) {
+        app->onPause();
+    }
+    LOGD("NapiHelper::NapiOnInvisible");
+    return nullptr;
+}
+
+napi_value NapiHelper::napiOnVisible(napi_env env, napi_callback_info info) {
+    cocos2d::WorkerMessageData data{cocos2d::MessageType::WM_APP_VISIBLE, nullptr, nullptr};
+    OpenHarmonyPlatform::getInstance()->enqueue(data);
+
+    Application* app = OpenHarmonyPlatform::getInstance()->g_app;
+    if (app) {
+        app->onPause();
+    }
+    LOGD("NapiHelper::NapiOnVisible");
     return nullptr;
 }
 

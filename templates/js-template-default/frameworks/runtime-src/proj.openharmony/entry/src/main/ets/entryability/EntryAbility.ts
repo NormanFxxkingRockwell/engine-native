@@ -2,9 +2,11 @@ import UIAbility from '@ohos.app.ability.UIAbility';
 import cocos from 'libcocos.so';
 import { ContextType } from '../common/Constants';
 import window from '@ohos.window';
+import deviceInfo from '@ohos.deviceInfo';
 
 const nativeContext = cocos.getContext(ContextType.ENGINE_UTILS);
 const nativeAppLifecycle = cocos.getContext(ContextType.APP_LIFECYCLE);
+let nowVisibleState = true;
 
 export default class EntryAbility extends UIAbility {
   onCreate(want, launchParam) {
@@ -49,6 +51,19 @@ export default class EntryAbility extends UIAbility {
         }
         console.info('Succeeded in setting the system bar to be invisible.');
       });
+      if (deviceInfo.deviceType === '2in1') {
+        try{
+          windowClass.on('windowVisibilityChange', (boolean) => {
+            console.info('window visibility changed, isVisible=' + boolean);
+            if (boolean !== nowVisibleState) {
+              boolean ? nativeAppLifecycle.onVisible() : nativeAppLifecycle.onInvisible();
+              nowVisibleState = boolean;
+            }
+          });
+        } catch (exception) {
+          console.error('Failed to regis5ter callback. cause code: ${exception.code}, message: ${exception.message}');
+        }
+      }
     });
 
     // Main window is created, set main page for this ability

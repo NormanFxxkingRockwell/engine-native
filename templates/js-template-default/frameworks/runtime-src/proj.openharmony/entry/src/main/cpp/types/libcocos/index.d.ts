@@ -20,6 +20,8 @@ interface context {
   onDestroy: () => void;
   onShow: () => void;
   onHide: () => void;
+  onVisible: () => void;
+  onInvisible: () => void;
   resourceManagerInit: (resourceManager: any) => void;
   writablePathInit: (cacheDir: string) => void;
 }

@@ -194,6 +194,10 @@ void OpenHarmonyPlatform::onMessageCallback(const uv_async_t* /* req */) {
             platform->onHideNative();
         } else if (msgData.type == MessageType::WM_APP_DESTROY) {
             platform->onDestroyNative();
+        } else if (msgData.type == MessageType::WM_APP_INVISIBLE) {
+            platform->OnInvisibleNative();
+        } else if (msgData.type == MessageType::WM_APP_VISIBLE) {
+            platform->OnVisibleNative();
         }
     }
 }
@@ -214,6 +218,17 @@ void OpenHarmonyPlatform::onHideNative() {
 
 void OpenHarmonyPlatform::onDestroyNative() {
     LOGD("OpenHarmonyPlatform::onDestroyNative");
+}
+
+void OpenHarmonyPlatform::OnInvisibleNative() {
+    LOGD("PluginRender::OnInvisibleNative");
+    _fpsSave = _fpsNow;
+    setPreferedFramePersecond(1);
+}
+
+void OpenHarmonyPlatform::OnVisibleNative() {
+    LOGD("PluginRender::OnVisibleNative");
+    setPreferedFramePersecond(_fpsSave);
 }
 
 void OpenHarmonyPlatform::timerCb(uv_timer_t* handle) {
@@ -277,6 +292,7 @@ void OpenHarmonyPlatform::setPreferedFramePersecond(int fps) {
     if (fps == 0) {
         return;
     }
+    _fpsNow = fps;
     _prefererredNanosecondsPerFrame = static_cast<long>(1.0 / fps * NANOSECONDS_PER_SECOND); // NOLINT(google-runtime-int)
 }
 

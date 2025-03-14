@@ -40,6 +40,8 @@ enum class MessageType {
     WM_XCOMPONENT_SURFACE_DESTROY,
     WM_APP_SHOW,
     WM_APP_HIDE,
+    WM_APP_INVISIBLE,
+    WM_APP_VISIBLE,
     WM_APP_DESTROY,
     WM_VSYNC,
 };
